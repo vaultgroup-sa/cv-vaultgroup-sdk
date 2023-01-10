@@ -1,0 +1,239 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+package cv_saas;
+
+message BasicResponse {
+  bool success = 1;
+  string errMsg = 2;
+  int32 code = 3;
+}
+
+message GeneralResponse {
+  BasicResponse resp = 1;
+}
+
+message GetVersionResponse {
+  BasicResponse resp = 1;
+
+  //will contain the software version number
+  string version = 2;
+
+}
+
+message GetLockerMapResponse {
+  BasicResponse resp = 1;
+
+  //an array of the number of lockers in each slave (not necessarily column since we've had products where
+  //multiple slaves are used in a single column eg. if a 10-locker column is required)
+  repeated uint32 lockers = 2;
+
+  //the total number of lockers in the system. This is just the sum of all integers in the array
+  uint32 num_lockers = 3;
+}
+
+message ToggleBuzzerRequest {
+  //the number of millis for which the buzzer must be sounded
+  uint32 duration_millis = 1;
+}
+
+message LockRequest {
+  //the locker number to locker. The first locker is always 1. The last locker can be determined by
+  //a call to get_locker_map()
+  uint32 locker_num = 1;
+}
+
+message GetRtcResponse {
+  BasicResponse resp = 1;
+
+  //the date+time in rfc8601/3399 format, with timezone information
+  string datetime = 2;
+}
+
+message SetRtcRequest {
+  //the date+time in rfc8601/3399 format, with timezone information
+  string datetime = 1;
+}
+
+message LcdClearLineRequest {
+  //the number of the line to clear. Lines (rows) are 0-3, inclusive
+  uint32 line_num = 1;
+}
+
+message LcdWriteDataRequest {
+  //0-3
+  uint32 row = 1;
+
+  //0-19
+  int32 col = 2;
+
+  //data to write (no more than 20 chars if starting from column 0)
+  string text = 3;
+}
+
+message UserAuditLogRequest {
+  /*
+    A user code. The minimum value is 256000000 (decimal).
+    The lower 8 bits may optionally contain ONE of the following values to indicate priority:
+          pub const AUDIT_CODE_DEFAULT: u32 = 0;
+          pub const AUDIT_CODE_LOW_PRIORITY: u32 = 1;
+          pub const AUDIT_CODE_MEDIUM_PRIORITY: u32 = 2;
+          pub const AUDIT_CODE_HIGH_PRIORITY: u32 = 3;
+          pub const AUDIT_CODE_V_HIGH_PRIORITY: u32 = 4;
+          pub const AUDIT_CODE_VV_HIGH_PRIORITY: u32 = 5;
+          pub const AUDIT_CODE_VVV_HIGH_PRIORITY: u32 = 6;
+    Note that the codes above are NOT for individual bits, so only one may be set. Values 7-15 are reserved for VG use.
+    Bits 4-7 are free for public use (i.e. users may do whatever they like with them)
+   */
+  uint32 code = 1;
+
+  /**
+    Valid values are "info", "warning", "error", "fatal" only. All other values will result in an error.
+   */
+  string level = 2;
+
+  /**
+    An optional string. May be used to indicate the source of the error
+   */
+  string facility = 3;
+
+  /**
+    The error message, no more than 1024 bytes
+   */
+  string description = 4;
+}
+
+message GetAuthTokenResponse {
+  BasicResponse resp = 1;
+
+  /**
+    Gives access to a copy of the JWT token used for authentication by this app.
+    This allows the client to access VG APIs if required. An empty string i.e. ""
+    in a success response means no token is currently available
+   */
+  string token = 2;
+}
+
+message SendSmsRequest {
+  /* cellphone number */
+  string cell_num = 1;
+
+  /* sms data to send */
+  string msg = 2;
+}
+
+message SetLockerStateRequest {
+  /**
+    the locker to access. The first locker is 1
+   */
+  uint32 locker_num = 1;
+
+  /**
+     the state to set the locker to. Valid values are:
+     LS_OPEN = 0
+     LS_LOCKED = 1
+     LS_READY_OPEN = 2
+
+   */
+  uint32 state = 2;
+}
+
+message LockerStateMessage {
+  /**
+   * See comment in SetLockerStateRequest
+   */
+  uint32 state = 1;
+}
+
+message LockerStateResponseMessage {
+  bool initialized = 1;
+  LockerStateMessage state = 2;
+}
+
+message GetLockerStatesResponse {
+  BasicResponse resp = 1;
+
+  //an array of integers where -1 means not initialized, 0 means closed, 1 means open.
+  //each number is for 1 locker (eg. if there are 20 lockers, there will be 20 items
+  //in the array)
+  repeated int32 door_map = 2;
+
+  //each item is for 1 locker (eg. if there are 20 lockers, there will be 20 items
+  //in the array)
+  repeated LockerStateResponseMessage locker_map = 3;
+}
+
+message GetSlaveFirmwareResponse {
+  BasicResponse resp = 1;
+
+  repeated string firmware = 2;
+}
+
+service CommsService {
+  //gets software version number
+  rpc get_version(google.protobuf.Empty) returns (GetVersionResponse);
+
+  //turns buzzer on for a user specified duration
+  rpc toggle_buzzer(ToggleBuzzerRequest) returns (GeneralResponse);
+
+  //locks the specified locker
+  rpc lock_locker(LockRequest) returns (GeneralResponse);
+
+  //unlocks the specified locker
+  rpc unlock_locker(LockRequest) returns (GeneralResponse);
+
+  //retrieves the date and time from the device
+  rpc get_rtc(google.protobuf.Empty) returns (GetRtcResponse);
+
+  //sets the date and time on the device. Note that this is periodically synced
+  //automatically to UTC, so it is not recommended this endpoint be used directly
+  rpc set_rtc(SetRtcRequest) returns (GeneralResponse);
+
+  //the the entire LCD screen. This is for the LCD screen connected to the master board only.
+  rpc lcd_clear_screen(google.protobuf.Empty) returns (GeneralResponse);
+
+  //clears the specified line of the LCD screen. This is for the LCD screen connected to the master board only.
+  rpc lcd_clear_line(LcdClearLineRequest) returns (GeneralResponse);
+
+  //writes some data to the LCD screen. This is for the LCD screen connected to the master board only.
+  rpc lcd_write_data(LcdWriteDataRequest) returns (GeneralResponse);
+
+  //retrieves the mapping for the unit
+  rpc get_locker_map(google.protobuf.Empty) returns (GetLockerMapResponse);
+
+  //Triggers a duress as per the user's request. For instance, the user may enter a special code on the
+  //keypad to have this duress triggered. The underlying action is hardware specific. For instance, on a
+  //RPI, this typically activates a GPIO pin. The hardware specific integration is handled by a different
+  //application via an integration layer and can be made to do just about anything (eg. we could send a
+  //message to a rabbit server or call a webhook or something if that's required)
+  rpc trigger_user_duress(google.protobuf.Empty) returns (GeneralResponse);
+
+  //Allows higher level user applications to take advantage of the vaultgroup auditing facility.
+  //User log messages will be mixed in which vaultgroup messages, but in a private code range allowing
+  //for easy filtering. It is not required that this endpoint be used. User's are free to have their own
+  //logging facilities independent of VG.
+  rpc user_audit(UserAuditLogRequest) returns (GeneralResponse);
+
+  //Submits an SMS for transmission. This will be transmitted via the VG server
+  rpc send_sms(SendSmsRequest) returns (GeneralResponse);
+
+  //retrieves the authentication token used to log in to VG services
+  rpc get_auth_token(google.protobuf.Empty) returns (GetAuthTokenResponse);
+
+  //a command to set the state on slave boards running dsv or similar firmware.
+  //this command is NOT available on regular slaves. dsv slaves included modified
+  //logic such that the door lock button can be used as a door open+lock button to
+  //repeatedly access a locker without further keypad input from the user. On
+  //completion of this cycle, the user cancels the operation from something like
+  //the keypad.
+  rpc set_locker_state(SetLockerStateRequest) returns (GeneralResponse);
+
+  //a simple endpoint that can be called to see if the server is operational
+  rpc ping(google.protobuf.Empty) returns (GeneralResponse);
+
+  //returns the states for every door (open/close based on the door switch) and
+  //lock (locked/unlocked)
+  rpc get_locker_states(google.protobuf.Empty) returns (GetLockerStatesResponse);
+
+  rpc get_slave_firmware(google.protobuf.Empty) returns (GetSlaveFirmwareResponse);
+}

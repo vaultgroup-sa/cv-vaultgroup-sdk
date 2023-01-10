@@ -1,0 +1,5 @@
+grpc-server: localhost:7777
+
+notifications:
+  listen-remote: true
+  port: 5555
