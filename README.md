@@ -284,19 +284,6 @@ rpc user_audit(UserAuditLogRequest) returns (GeneralResponse);
 
 ```
 message UserAuditLogRequest {
-  /*
-    A user code. The minimum value is 256000000 (decimal).
-    The lower 8 bits may optionally contain ONE of the following values to indicate priority:
-          pub const AUDIT_CODE_DEFAULT: u32 = 0;
-          pub const AUDIT_CODE_LOW_PRIORITY: u32 = 1;
-          pub const AUDIT_CODE_MEDIUM_PRIORITY: u32 = 2;
-          pub const AUDIT_CODE_HIGH_PRIORITY: u32 = 3;
-          pub const AUDIT_CODE_V_HIGH_PRIORITY: u32 = 4;
-          pub const AUDIT_CODE_VV_HIGH_PRIORITY: u32 = 5;
-          pub const AUDIT_CODE_VVV_HIGH_PRIORITY: u32 = 6;
-    Note that the codes above are NOT for individual bits, so only one may be set. Values 7-15 are reserved for VG use.
-    Bits 4-7 are free for public use (i.e. users may do whatever they like with them)
-   */
   uint32 code = 1;
 
   /**
@@ -313,6 +300,10 @@ message UserAuditLogRequest {
     The error message, no more than 1024 bytes
    */
   string description = 4;
+
+  string priority = 5;
+
+  string app = 6;
 }
 ```
 
@@ -489,19 +480,56 @@ message SetLedMessage {
 }
 ```
 
+#### Reboot
+
+This commands allows a remote device to reboot the system. The actual reboot
+is performed by an external application or script, and the entire OS is
+rebooted.
+
+The command requires a code/token. Currently, the code must be calculated as follows:
+
+The token is made up of data in the text file ${base_dir}/reboot_code, combined
+with the utc time in seconds since the epoch rounded down to the last 100
+seconds. A dash (-) separates these values. The sha256sum is then taken
+of these values, and the lowercase hex encoded value is the hash.
+
+For instance:
+```
+x=get_file_contents("${base_dir}/reboot_code")
+
+//Suppose the unix time (utc) is t=16045968777. This must be rounded down to
+//16045968700. The calculation is: t = t - (t % 100) 
+t = get_utc_epoch_time()
+t = t - (t % 100) 
+
+the value to hash is: v="${x}-${t}"
+token = sha256sum(${v})
+```
+
+This system ensures the reboot hash changes every 100 seconds, and the
+reboot code is never shared between systems
+
+```
+rpc reboot(RebootRequest) returns (GeneralResponse);
+
+message RebootRequest {
+  string code = 1;
+}
+```
+
+
+
 ### User event callbacks
 
 The application implements a callback system for detection of events such as keypad presses,
 door lock/unlock, door open/close.
 
-Notification messages are passed up via UDP. Every UDP packet contains one event only.
+Notification messages are passed up via UDP. The UDP host and port to which callbacks are sent may
+be configured in the cvmain configuration file. Every UDP packet contains one event
+only.
 
-While using real hardware the cvmain module and *a business logic app* will be running on the same machine.
-If you develop your custom solution using the simulator then you'll have to listen UDP port 0.0.0.0:5555
-on your local machine to receive notifications from cvmain running within docker container.
-On a real hardware you'll be able to listen to local connections only — 127.0.0.1:5555.
-
-To view events without writing code, the simplest way is to use netcat like so (on Linux):
+By default, the callback system sends data to 127.0.0.1:5555. To view events without
+writing code, the simplest way is to use netcat like so (on Linux):
 
 ```
 nc -l -u 5555

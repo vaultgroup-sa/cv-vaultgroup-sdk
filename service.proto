@@ -72,19 +72,6 @@ message LcdWriteDataRequest {
 }
 
 message UserAuditLogRequest {
-  /*
-    A user code. The minimum value is 256000000 (decimal).
-    The lower 8 bits may optionally contain ONE of the following values to indicate priority:
-          pub const AUDIT_CODE_DEFAULT: u32 = 0;
-          pub const AUDIT_CODE_LOW_PRIORITY: u32 = 1;
-          pub const AUDIT_CODE_MEDIUM_PRIORITY: u32 = 2;
-          pub const AUDIT_CODE_HIGH_PRIORITY: u32 = 3;
-          pub const AUDIT_CODE_V_HIGH_PRIORITY: u32 = 4;
-          pub const AUDIT_CODE_VV_HIGH_PRIORITY: u32 = 5;
-          pub const AUDIT_CODE_VVV_HIGH_PRIORITY: u32 = 6;
-    Note that the codes above are NOT for individual bits, so only one may be set. Values 7-15 are reserved for VG use.
-    Bits 4-7 are free for public use (i.e. users may do whatever they like with them)
-   */
   uint32 code = 1;
 
   /**
@@ -101,6 +88,10 @@ message UserAuditLogRequest {
     The error message, no more than 1024 bytes
    */
   string description = 4;
+
+  string priority = 5;
+
+  string app = 6;
 }
 
 message GetAuthTokenResponse {
@@ -150,6 +141,11 @@ message LockerStateResponseMessage {
   LockerStateMessage state = 2;
 }
 
+message SetLedMessage {
+  uint32 locker_num = 1;
+  uint32 color = 2;
+}
+
 message GetLockerStatesResponse {
   BasicResponse resp = 1;
 
@@ -167,6 +163,16 @@ message GetSlaveFirmwareResponse {
   BasicResponse resp = 1;
 
   repeated string firmware = 2;
+}
+
+message RebootRequest {
+  string code = 1;
+}
+
+message GetProtocolVersionResponse {
+  BasicResponse resp = 1;
+
+  string version = 2;
 }
 
 service CommsService {
@@ -235,5 +241,16 @@ service CommsService {
   //lock (locked/unlocked)
   rpc get_locker_states(google.protobuf.Empty) returns (GetLockerStatesResponse);
 
+  //returns the version number for each slave board. The system will
+  //not start if the wrong slaves and/or locks have been configured
   rpc get_slave_firmware(google.protobuf.Empty) returns (GetSlaveFirmwareResponse);
+
+  rpc set_led(SetLedMessage) returns (GeneralResponse);
+
+  //reboots the entire system. For the reboot to work, a valid code must be provided.
+  //the reboot is handled by an external application/script. That script validates
+  //the code
+  rpc reboot(RebootRequest) returns (GeneralResponse);
+
+  rpc get_protocol_version(google.protobuf.Empty) returns (GetProtocolVersionResponse);
 }
