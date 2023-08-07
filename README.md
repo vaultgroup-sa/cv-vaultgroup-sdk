@@ -653,3 +653,7 @@ Notification sent when an RFID card was read successfully, but it could not be m
 against a valid value in the internal database.
 
 Data structure is same as for "RFID card", but the type is "rfid_unknown"
+
+### Deployment on android app
+Below is link to android cvmain library, to see details how to integrate cvmain into your android app visit
+https://github.com/vaultgroup-sa/cvmain-android-sample
