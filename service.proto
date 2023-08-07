@@ -175,6 +175,40 @@ message GetProtocolVersionResponse {
   string version = 2;
 }
 
+message MqttCommsIntegration {
+  string host = 1;
+  uint32 port = 2;
+}
+
+message RegisterMqttIntegrationRequest {
+  string name = 1;
+  MqttCommsIntegration integration = 2;
+}
+
+message RegisterMqttIntegrationResponse {
+  BasicResponse resp = 1;
+}
+
+message UnregisterMqttIntegrationRequest {
+  string name = 1;
+}
+
+message KVPairItem {
+  string k = 1;
+  string v = 2;
+}
+
+message IntegrationItem {
+  string bind_addr = 1;
+  string send_addr = 2;
+}
+
+message NotificationMessageRequest {
+  string msg_type = 1;
+  repeated KVPairItem vals = 2;
+  optional IntegrationItem integration = 3;
+}
+
 service CommsService {
   //gets software version number
   rpc get_version(google.protobuf.Empty) returns (GetVersionResponse);
@@ -252,5 +286,18 @@ service CommsService {
   //the code
   rpc reboot(RebootRequest) returns (GeneralResponse);
 
+  //retrieves the version of the grpc protocol. Can be used to determine which
+  //functions are available. Available as of 1.0.1
   rpc get_protocol_version(google.protobuf.Empty) returns (GetProtocolVersionResponse);
+
+  //Used to register an mqtt integration by an external app. Available as of
+  //1.0.2
+  rpc register_mqtt_integration(RegisterMqttIntegrationRequest) returns (RegisterMqttIntegrationResponse);
+
+  //Used to unregister an mqtt integration by an external app. Available as of
+  //1.0.2
+  rpc unregister_mqtt_integration(UnregisterMqttIntegrationRequest) returns (RegisterMqttIntegrationResponse);
+
+  //allows a third party app to send a non-vg notification message
+  rpc send_notification(NotificationMessageRequest) returns (BasicResponse);
 }
