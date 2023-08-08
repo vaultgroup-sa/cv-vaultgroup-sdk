@@ -36,6 +36,40 @@ docker run -p 5000:5000 -p 7777:7777 -p 4200:4200 simulator-rs 5-6-6-3 true true
 
 It will take some time to start, and then you can simply navigate to http://localhost:4200 in your web browser to open the UI.
 
+You are going to see an empty LCD screen and keypad that actually does nothing. That's because you need to integrate with API and implement your own
+business logic (handle key presses, print some information on LCD screen, lock/unlock the lockers etc).
+
+Right away you can use netcat to receive notifications from the simulated unit:
+
+```shell
+nc -l -u 5555
+```
+
+Example output:
+
+```text
+{"type":"door_opened","vals":[{"k":"locker","v":"1"},{"k":"offset","v":"[0:1]"}]}
+{"type":"door_closed","vals":[{"k":"locker","v":"1"},{"k":"offset","v":"[0:1]"}]}
+{"type":"key","vals":[{"k":"value","v":"49"}]}
+{"type":"key","vals":[{"k":"value","v":"50"}]}
+{"type":"key","vals":[{"k":"value","v":"51"}]}
+```
+
+Also, you can use any gRPC tool (e.g. BloomRPC or Kreya) to make quick gRPC calls and see how it works. Please check further chapters to get more details
+about development of your solution.
+
+## Android
+
+You may want to use an Android tablet or phone to have a decent UI with touch screen. At the development stage you're supposed to run the simulator
+on your computer and make sure to connect your Android device to the same network (so you can receive broadcast UDP messages). Also, you will connect
+to gRPC API that the simulator exposes.
+
+You can use Android simulator instead of a physical device.
+
+Once you've done with development and ready to use your solution with actual hardware you will need the `cvmain` library to your Android project.
+
+Check [this repo](https://github.com/vaultgroup-sa/cvmain-android-sample) for more details about `cvmain` library.
+
 ## Configuration
 
 The command we just ran needs some explanation.
@@ -517,8 +551,6 @@ message RebootRequest {
 }
 ```
 
-
-
 ### User event callbacks
 
 The application implements a callback system for detection of events such as keypad presses,
@@ -531,13 +563,13 @@ only.
 By default, the callback system sends data to 127.0.0.1:5555. To view events without
 writing code, the simplest way is to use netcat like so (on Linux):
 
-```
+```shell
 nc -l -u 5555
 ```
 
 All notification messages have the same data structure:
 
-```
+```json
 {
     "type": "string",
     "vals": [
@@ -551,25 +583,25 @@ All notification messages have the same data structure:
 
 #### Door opened notification
 
-```
-    {
-        type: "door_opened",
-        vals: [
-            {
-                "k": "locker",
-                "v": "5"
-            },
-            {
-                "k": "offset",
-                "v": "[0:4]"
-            }
-        ]
-    }
+```json
+{
+    "type": "door_opened",
+    "vals": [
+        {
+            "k": "locker",
+            "v": "5"
+        },
+        {
+            "k": "offset",
+            "v": "[0:4]"
+        }
+    ]
+}
 ```
 
 Where:
-- val: locker refers to the locker number (counting from 1)
-- val: offset refers to the slave/locker (slave counts from 0, locker counts from 0)
+- `locker`: locker refers to the locker number (counting from 1)
+- `offset`: offset refers to the slave/locker (slave counts from 0, locker counts from 0)
 
 #### Door closed notification
 
@@ -587,36 +619,36 @@ This is the same as the door opened notification, but the type is "door_unlocked
 
 Indicates a key was pressed on the keypad attached to the master board
 
-```
-    {
-        type: "key",
-        vals: [
-            {
-                "k": "value",
-                "v": "49"
-            }
-        ]
-    }
+```json
+{
+    "type": "key",
+    "vals": [
+        {
+            "k": "value",
+            "v": "49"
+        }
+    ]
+}
 ```
 
 Where "49" is the ASCII value 49, or char '1'. All values are provided in ASCII. Valid
-(ASCII) values are the characts 0-9, * and #. These are the only keys supported by the
+(ASCII) values are the characters 0-9, * and #. These are the only keys supported by the
 physical keypad.
 
 #### Duress detected
 
 Indicates the user triggered the duress endpoint.
 
-```
-    {
-        type: "duress",
-        vals: [
-            {
-                "k": "dt",
-                "v": "2022-01-01T00:00:00Z"
-            }
-        ]
-    }
+```json
+{
+    "type": "duress",
+    "vals": [
+        {
+            "k": "dt",
+            "v": "2022-01-01T00:00:00Z"
+        }
+    ]
+}
 ```
 
 Where:
@@ -627,20 +659,20 @@ Where:
 
 An RFID card was detected and read, matched against the internal database, and is valid.
 
-```
-    {
-        type: "rfid_card",
-        vals: [
-            {
-                "k": "card",
-                "v": "1234567890",
-            },
-            {
-                "k": "dt",
-                "v": "2022-01-01T00:00:00Z"
-            }
-        ]
-    }
+```json
+{
+    "type": "rfid_card",
+    "vals": [
+        {
+            "k": "card",
+            "v": "1234567890",
+        },
+        {
+            "k": "dt",
+            "v": "2022-01-01T00:00:00Z"
+        }
+    ]
+}
 ```
 
 Where:
@@ -653,7 +685,3 @@ Notification sent when an RFID card was read successfully, but it could not be m
 against a valid value in the internal database.
 
 Data structure is same as for "RFID card", but the type is "rfid_unknown"
-
-### Deployment on android app
-Below is link to android cvmain library, to see details how to integrate cvmain into your android app visit
-https://github.com/vaultgroup-sa/cvmain-android-sample
