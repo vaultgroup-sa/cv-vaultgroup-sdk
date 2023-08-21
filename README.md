@@ -21,12 +21,12 @@ To run the simulator you need [Docker](https://www.docker.com/) installed on you
 
 First pull the image from public registry:
 ```shell
-docker pull public.ecr.aws/h2j0d2q1/simulator-rs:latest
+docker pull public.ecr.aws/vaultgroup/simulator-rs:latest
 ```
 
 For ease of use let's give it a short name:
 ```shell
-docker tag public.ecr.aws/h2j0d2q1/simulator-rs:latest simulator-rs
+docker tag public.ecr.aws/vaultgroup/simulator-rs:latest simulator-rs
 ```
 
 All preparations are done, we can run the simulator right away:
