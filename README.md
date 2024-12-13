@@ -31,8 +31,10 @@ docker tag public.ecr.aws/vaultgroup/simulator-rs:latest simulator-rs
 
 All preparations are done, we can run the simulator right away:
 ```shell
-docker run -p 5000:5000 -p 7777:7777 -p 4200:4200 simulator-rs 5-6-6-3 true true
+docker run -p 5000:5000 -p 7777:7777 -p 4200:4200 simulator-rs 5-6-6-3 true false <username> <password>
 ```
+
+Please contact VaultGroup for credentials.
 
 It will take some time to start, and then you can simply navigate to http://localhost:4200 in your web browser to open the UI.
 
@@ -66,9 +68,8 @@ to gRPC API that the simulator exposes.
 
 You can use Android simulator instead of a physical device.
 
-Once you've done with development and ready to use your solution with actual hardware you will need the `cvmain` library to your Android project.
-
-Check [this repo](https://github.com/vaultgroup-sa/cvmain-android-sample) for more details about `cvmain` library.
+Once you've done with development and ready to use your solution with actual hardware you will need to add the `cvmain` library to your Android project.
+Please check [this repo](https://github.com/vaultgroup-sa/cvmain-android-sample) for more details.
 
 ## Configuration
 
@@ -79,7 +80,7 @@ Once created the docker container will expose ports 5000 (WebSocket Server for c
 
 For more information about port mapping, see [docker documentation](https://docs.docker.com/config/containers/container-networking/).
 
-The part `5-6-6-3 true true` is a configuration of hardware to simulate which stands for `<dimensions> <use_cv_locks> <use_multistate_slave>`:
+The part `5-6-6-3 true false` is a configuration of hardware to simulate which stands for `<dimensions> <use_cv_locks> <use_multistate_slave>`:
 - `dimensions` property defines how many columns (and how many lockers in each column) a simulated vault should have (e.g. `3-3` means two columns having 3 lockers each);
 - `use_cv_locks` is a boolean property which defines a type of locks to be simulated (`true` — CV locks that can be locked or unlocked via API, `false` — "Chinese" locks that can be unlocked via API and lock themselves automatically once a locker door is closed);
 - `use_multistate_slave` is a boolean property which enables (if set to `true`) third state for a locker (locked/unlocked + ready_to_open which means that locking mechanism is engaged but can be disengaged by pressing a "lock" button which appears on UI) and also an LED indication (green = unlocked, orange = ready_to_open, red = locked).
