@@ -31,7 +31,7 @@ docker tag public.ecr.aws/vaultgroup/simulator-rs:latest simulator-rs
 
 All preparations are done, we can run the simulator right away:
 ```shell
-docker run -p 5000:5000 -p 7777:7777 -p 4200:4200 simulator-rs 5-6-6-3 true false <username> <password>
+docker run -p 5000:5000 -p 7777:7777 -p 8082:8082 -p 4200:4200 simulator-rs 5-6-6-3 true false <username> <password>
 ```
 
 Please contact VaultGroup for credentials.
